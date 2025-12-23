@@ -1,7 +1,9 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import datetime
 import os
+import aiohttp  # ✅ Needed for auto-ping
+import asyncio
 
 import database as db
 from config import BOT_NAME, VERSION
@@ -69,6 +71,9 @@ async def on_ready():
         )
     )
 
+    # Start auto-ping task
+    ping_self.start()
+
 @bot.event
 async def on_message(message: discord.Message):
     if message.author.bot:
@@ -110,6 +115,19 @@ async def on_message(message: discord.Message):
             )
 
     await bot.process_commands(message)
+
+# ---------------- AUTO-PING TASK ---------------- #
+
+@tasks.loop(minutes=1)
+async def ping_self():
+    url = os.getenv("KEEP_ALIVE_URL")  # Your web server URL
+    if url:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    print(f"🔔 Auto-ping sent, status: {resp.status}")
+        except Exception as e:
+            print(f"❌ Auto-ping failed: {e}")
 
 # ---------------- RUN ---------------- #
 
