@@ -10,7 +10,7 @@ class Social(commands.Cog):
         self.bot = bot
 
     async def send_action(self, interaction, title, text, gif_query):
-        gif = get_gif(gif_query)
+        gif = await get_gif(gif_query)
         embed = discord.Embed(
             title=title,
             description=line(text),
@@ -85,3 +85,4 @@ class Social(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Social(bot))
+
