@@ -5,6 +5,7 @@ import os
 
 import database as db
 from config import BOT_NAME, VERSION
+from keep_alive import keep_alive  # ✅ Import keep_alive
 
 START_TIME = datetime.datetime.utcnow()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -36,7 +37,7 @@ class OmniBot(commands.Bot):
             "social",
             "Economy",
             "moderation",
-            "utility"   # ✅ THIS WAS MISSING
+            "utility"
         ]
 
         for cog in cogs:
@@ -113,4 +114,5 @@ async def on_message(message: discord.Message):
 # ---------------- RUN ---------------- #
 
 if __name__ == "__main__":
+    keep_alive()  # ✅ Start keep-alive web server
     bot.run(TOKEN)
