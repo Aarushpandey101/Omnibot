@@ -147,6 +147,16 @@ async def get_warns(uid: int):
         async with db.execute("SELECT count FROM warns WHERE user_id=?", (uid,)) as cur:
             return (await cur.fetchone())[0]
 
+async def reset_warns(uid: int):
+    await ensure_user(uid)
+    async with aiosqlite.connect(DB_FILE) as db:
+        await db.execute(
+            "UPDATE warns SET count = 0 WHERE user_id=?",
+            (uid,)
+        )
+        await db.commit()
+
+
 # --- AFK ---
 async def set_afk(uid: int, reason: str = "AFK"):
     await ensure_user(uid)
