@@ -5,6 +5,7 @@ import os
 
 import database as db
 from config import BOT_NAME, VERSION
+from keep_alive import keep_alive  # ✅ ADD THIS
 
 START_TIME = datetime.datetime.utcnow()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -36,7 +37,7 @@ class OmniBot(commands.Bot):
             "social",
             "Economy",
             "moderation",
-            "utility", 
+            "utility",
             "leaderboard",
             "profile",
             "games"
@@ -116,4 +117,5 @@ async def on_message(message: discord.Message):
 # ---------------- RUN ---------------- #
 
 if __name__ == "__main__":
+    keep_alive()          # ✅ REQUIRED FOR RENDER
     bot.run(TOKEN)
