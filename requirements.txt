@@ -3,4 +3,5 @@ requests
 aiosqlite
 aiohttp
 psutil
+python-dotenv
 
