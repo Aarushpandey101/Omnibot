@@ -2,10 +2,10 @@ import discord
 from discord.ext import commands
 import datetime
 import os
+import asyncio
 
 import database as db
 from config import BOT_NAME, VERSION
-from keep_alive import keep_alive  # ✅ ADD THIS
 
 START_TIME = datetime.datetime.utcnow()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -31,24 +31,26 @@ class OmniBot(commands.Bot):
         # Initialize database
         await db.setup()
 
-        # Load extensions (FILES, not folders)
+        # Load extensions
         cogs = [
             "fun",
             "social",
-            "Economy",
+            "economy",  # Make sure file is named economy.py
             "moderation",
-            "utility",
+            "utility", 
             "leaderboard",
             "profile",
             "games"
         ]
 
+        print("--- Loading Cogs ---")
         for cog in cogs:
             try:
                 await self.load_extension(cog)
                 print(f"✅ Loaded {cog}")
             except Exception as e:
                 print(f"❌ Failed to load {cog}: {e}")
+        print("--------------------")
 
         # Sync slash commands
         await self.tree.sync()
@@ -79,43 +81,51 @@ async def on_message(message: discord.Message):
 
     uid = message.author.id
 
-    # XP for chatting
-    new_lvl = await db.add_xp(uid, 5, 10)
-    if new_lvl:
-        await message.channel.send(
-            embed=discord.Embed(
-                title="🎉 LEVEL UP!",
-                description=f"**{message.author.name}** reached **Level {new_lvl}**!",
-                color=0xFFD700
-            )
-        )
+    # 1. AFK REMOVAL CHECK
+    # We check if they are AFK. If yes, REMOVE IT FIRST, then say welcome back.
+    # This prevents infinite loops.
+    try:
+        afk_reason = await db.get_afk(uid)
+        if afk_reason:
+            await db.remove_afk(uid)
+            await message.channel.send(f"👋 **{message.author.name}** is back!", delete_after=5)
+    except Exception:
+        pass
 
-    # AFK removal
-    afk_reason = await db.get_afk(uid)
-    if afk_reason:
-        await db.remove_afk(uid)
-        await message.channel.send(
-            f"👋 **{message.author.name}** is back!",
-            delete_after=5
-        )
-
-    # Mention AFK users
-    for user in message.mentions:
-        reason = await db.get_afk(user.id)
-        if reason:
+    # 2. XP SYSTEM
+    try:
+        new_lvl = await db.add_xp(uid, 5, 10)
+        if new_lvl:
             await message.channel.send(
                 embed=discord.Embed(
-                    title="💤 AFK",
-                    description=f"**{user.name}** is AFK: {reason}",
-                    color=0x808080
-                ),
-                delete_after=8
+                    title="🎉 LEVEL UP!",
+                    description=f"**{message.author.name}** reached **Level {new_lvl}**!",
+                    color=0xFFD700
+                )
             )
+    except Exception:
+        pass 
+
+    # 3. MENTION CHECK (Check if mentioned user is AFK)
+    if message.mentions:
+        for user in message.mentions:
+            try:
+                reason = await db.get_afk(user.id)
+                if reason:
+                    await message.channel.send(
+                        embed=discord.Embed(
+                            title="💤 AFK",
+                            description=f"**{user.name}** is AFK: {reason}",
+                            color=0x808080
+                        ),
+                        delete_after=8
+                    )
+            except Exception:
+                pass
 
     await bot.process_commands(message)
 
 # ---------------- RUN ---------------- #
 
 if __name__ == "__main__":
-    keep_alive()          # ✅ REQUIRED FOR RENDER
     bot.run(TOKEN)
