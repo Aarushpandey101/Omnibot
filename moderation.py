@@ -4,7 +4,7 @@ from discord.ext import commands
 from discord import app_commands
 from datetime import datetime, timedelta
 
-from db import (
+from database import (
     ensure_user, add_warn, get_warns,
 )
 from personality import line
@@ -155,3 +155,4 @@ class Moderation(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Moderation(bot))
+
