@@ -2,11 +2,15 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import datetime
+import platform
+import psutil
+import os
 
-import database as db
-from personality import line
 from config import BOT_NAME, VERSION
+from personality import line
 
+# Capture start time for uptime command
+START_TIME = datetime.datetime.utcnow()
 
 # ---------------- HELP UI ---------------- #
 
@@ -37,7 +41,7 @@ class HelpEmbeds:
         return discord.Embed(
             title="🌌 OmniBot Command Center",
             description=line(
-                "**Welcome to OmniBot — GOD-TITAN v4.0**\n\n"
+                f"**Welcome to {BOT_NAME} — {VERSION}**\n\n"
                 "Use the buttons below to explore command categories.\n"
                 "Designed to feel better than premium bots."
             ),
@@ -50,8 +54,8 @@ class HelpEmbeds:
             title="🎉 Fun Commands",
             description=(
                 "`/meme` `/joke` `/trivia`\n"
-                "`/slap` `/hug` `/kiss`\n"
-                "`/hack` `/8ball`"
+                "`/slap` `/hug` `/kiss` `/poke`\n"
+                "`/hack` `/8ball` `/roast`"
             ),
             color=0xFF69B4
         )
@@ -61,9 +65,9 @@ class HelpEmbeds:
         return discord.Embed(
             title="💰 Economy Commands",
             description=(
-                "`/balance` `/daily`\n"
+                "`/balance` `/daily` `/work`\n"
                 "`/shop` `/buy` `/sell`\n"
-                "`/slots` `/dice`"
+                "`/slots` `/dice` `/coinflip`"
             ),
             color=0x2ECC71
         )
@@ -73,8 +77,9 @@ class HelpEmbeds:
         return discord.Embed(
             title="🛡️ Moderation Commands",
             description=(
-                "`/kick` `/ban` `/timeout`\n"
-                "`/warn` `/purge`"
+                "`/kick` `/ban` `/softban`\n"
+                "`/timeout` `/warn` `/purge`\n"
+                "`/lockdown` `/unlockdown`"
             ),
             color=0xE74C3C
         )
@@ -82,10 +87,11 @@ class HelpEmbeds:
     @staticmethod
     def stats():
         return discord.Embed(
-            title="📊 Stats & Profile",
+            title="📊 Stats & Utility",
             description=(
-                "`/profile` – View your stats\n"
-                "`/leaderboard` – Top players"
+                "`/profile` `/leaderboard`\n"
+                "`/ping` `/uptime` `/stats`\n"
+                "`/invite` `/about`"
             ),
             color=0x9B59B6
         )
@@ -102,57 +108,70 @@ class Utility(commands.Cog):
     async def help(self, interaction: discord.Interaction):
         embed = HelpEmbeds.main()
         embed.set_footer(text=f"{BOT_NAME} • {VERSION}")
-        await interaction.response.send_message(
-            embed=embed,
-            view=HelpView(),
-            ephemeral=True
-        )
+        await interaction.response.send_message(embed=embed, view=HelpView())
 
-    # PROFILE
-    @app_commands.command(name="profile", description="View your profile")
-    async def profile(self, interaction: discord.Interaction, user: discord.Member = None):
-        user = user or interaction.user
-
-        xp, level = await db.get_level(user.id)
-        wallet, bank = await db.get_balance(user.id)
-        warns = await db.get_warns(user.id)
-
-        embed = discord.Embed(
-            title=f"👤 {user.name}'s Profile",
-            color=0x5865F2
-        )
-        embed.set_thumbnail(url=user.display_avatar.url)
-        embed.add_field(name="Level", value=level, inline=True)
-        embed.add_field(name="XP", value=xp, inline=True)
-        embed.add_field(name="Wallet", value=f"₹ {wallet}", inline=True)
-        embed.add_field(name="Bank", value=f"₹ {bank}", inline=True)
-        embed.add_field(name="Warns", value=warns, inline=True)
-
-        embed.set_footer(text="Grind harder 💀")
-
+    # PING
+    @app_commands.command(name="ping", description="Check bot latency")
+    async def ping(self, interaction: discord.Interaction):
+        latency = round(self.bot.latency * 1000)
+        color = 0x00FF00 if latency < 100 else 0xE74C3C
+        
+        embed = discord.Embed(title="🏓 Pong!", color=color)
+        embed.add_field(name="Latency", value=f"**{latency}ms**")
         await interaction.response.send_message(embed=embed)
 
-    # LEADERBOARD
-    @app_commands.command(name="leaderboard", description="Top 10 players")
-    async def leaderboard(self, interaction: discord.Interaction):
-        async with db.aiosqlite.connect(db.DB_FILE) as conn:
-            async with conn.execute(
-                "SELECT user_id, level FROM users ORDER BY level DESC LIMIT 10"
-            ) as cur:
-                rows = await cur.fetchall()
+    # UPTIME
+    @app_commands.command(name="uptime", description="Check how long the bot has been online")
+    async def uptime(self, interaction: discord.Interaction):
+        delta = datetime.datetime.utcnow() - START_TIME
+        days = delta.days
+        hours, remainder = divmod(delta.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
 
-        desc = ""
-        for i, (uid, lvl) in enumerate(rows, start=1):
-            member = interaction.guild.get_member(uid)
-            name = member.name if member else f"User {uid}"
-            desc += f"**#{i}** {name} — Level {lvl}\n"
+        embed = discord.Embed(title="⏱️ System Uptime", color=0x3498DB)
+        embed.description = f"**{days}d {hours}h {minutes}m {seconds}s**"
+        await interaction.response.send_message(embed=embed)
 
-        embed = discord.Embed(
-            title="🏆 Leaderboard",
-            description=desc or "No data yet.",
-            color=0xFFD700
+    # STATS
+    @app_commands.command(name="stats", description="Advanced bot statistics")
+    async def stats(self, interaction: discord.Interaction):
+        # Calculate memory usage
+        mem = psutil.Process(os.getpid()).memory_info().rss // 1024 // 1024
+        
+        embed = discord.Embed(title="📊 Diagnostic Stats", color=0x9B59B6)
+        embed.add_field(name="Servers", value=f"`{len(self.bot.guilds)}`", inline=True)
+        embed.add_field(name="Users", value=f"`{len(self.bot.users)}`", inline=True)
+        embed.add_field(name="RAM Usage", value=f"`{mem} MB`", inline=True)
+        embed.add_field(name="Latency", value=f"`{round(self.bot.latency*1000)}ms`", inline=True)
+        embed.add_field(name="Library", value=f"`discord.py`", inline=True)
+        
+        await interaction.response.send_message(embed=embed)
+
+    # INVITE
+    @app_commands.command(name="invite", description="Get the invite link")
+    async def invite(self, interaction: discord.Interaction):
+        invite_url = discord.utils.oauth_url(
+            self.bot.user.id,
+            permissions=discord.Permissions(administrator=True)
         )
+        embed = discord.Embed(
+            description=f"🔗 **[Click here to invite {BOT_NAME}]({invite_url})**",
+            color=0x1ABC9C
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    # ABOUT
+    @app_commands.command(name="about", description="About the bot")
+    async def about(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title=f"🤖 About {BOT_NAME}",
+            description=line(
+                f"**Version:** {VERSION}\n"
+                f"**Developer:** {os.getenv('BOT_CREATOR', 'Unknown')}\n\n"
+                "A next-gen Discord bot built for fun, economy, and flexing."
+            ),
+            color=0xF1C40F
+        )
         await interaction.response.send_message(embed=embed)
 
 
