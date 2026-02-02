@@ -5,7 +5,7 @@ import random
 
 from personality import line
 from gif_engine import get_gif
-from db import (
+from database import (
     add_xp, add_wallet,
     set_cooldown, get_cooldown,
     get_inventory
@@ -175,3 +175,4 @@ class Fun(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Fun(bot))
+
