@@ -2,15 +2,18 @@ from flask import Flask
 from threading import Thread
 import os
 
-app = Flask("server")
+app = Flask('')
 
-@app.route("/")
+@app.route('/')
 def home():
-    return "OmniBot is alive!"
+    return "I'm alive!"
 
 def run():
-    port = int(os.environ.get("PORT", 10000))  # ✅ Render-safe
-    app.run(host="0.0.0.0", port=port)
+    # IMPORTANT: This line now looks for the 'PORT' environment variable from Render
+    # If it doesn't find one (like on your PC), it falls back to 8080.
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
 
 def keep_alive():
-    Thread(target=run, daemon=True).start()
+    t = Thread(target=run)
+    t.start()
