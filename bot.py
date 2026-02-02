@@ -4,6 +4,9 @@ import datetime
 import os
 import asyncio
 
+# --- IMPORT THE WEB SERVER ---
+import keep_alive 
+
 import database as db
 from config import BOT_NAME, VERSION
 
@@ -28,14 +31,13 @@ class OmniBot(commands.Bot):
         )
 
     async def setup_hook(self):
-        # Initialize database
         await db.setup()
 
-        # Load extensions
+        # NOTE: Make sure your file names match these exactly (lowercase vs uppercase)
         cogs = [
             "fun",
             "social",
-            "economy",  # Make sure file is named economy.py
+            "economy", 
             "moderation",
             "utility", 
             "leaderboard",
@@ -52,7 +54,6 @@ class OmniBot(commands.Bot):
                 print(f"❌ Failed to load {cog}: {e}")
         print("--------------------")
 
-        # Sync slash commands
         await self.tree.sync()
 
 # ---------------- BOT INSTANCE ---------------- #
@@ -81,18 +82,7 @@ async def on_message(message: discord.Message):
 
     uid = message.author.id
 
-    # 1. AFK REMOVAL CHECK
-    # We check if they are AFK. If yes, REMOVE IT FIRST, then say welcome back.
-    # This prevents infinite loops.
-    try:
-        afk_reason = await db.get_afk(uid)
-        if afk_reason:
-            await db.remove_afk(uid)
-            await message.channel.send(f"👋 **{message.author.name}** is back!", delete_after=5)
-    except Exception:
-        pass
-
-    # 2. XP SYSTEM
+    # Add XP (safe fail)
     try:
         new_lvl = await db.add_xp(uid, 5, 10)
         if new_lvl:
@@ -106,7 +96,16 @@ async def on_message(message: discord.Message):
     except Exception:
         pass 
 
-    # 3. MENTION CHECK (Check if mentioned user is AFK)
+    # AFK Check
+    try:
+        afk_reason = await db.get_afk(uid)
+        if afk_reason:
+            await db.remove_afk(uid)
+            await message.channel.send(f"👋 **{message.author.name}** is back!", delete_after=5)
+    except Exception:
+        pass
+
+    # Mention Check
     if message.mentions:
         for user in message.mentions:
             try:
@@ -128,4 +127,6 @@ async def on_message(message: discord.Message):
 # ---------------- RUN ---------------- #
 
 if __name__ == "__main__":
+    # START THE WEB SERVER BEFORE THE BOT
+    keep_alive.keep_alive()
     bot.run(TOKEN)
