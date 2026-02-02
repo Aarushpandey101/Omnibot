@@ -7,7 +7,7 @@ import asyncio
 from datetime import datetime, timedelta
 
 from personality import line
-from db import (
+from database import (
     add_wallet, add_bank, get_balance, add_xp, get_inventory, add_item, remove_item,
     ensure_user, get_cooldown, set_cooldown
 )
@@ -177,3 +177,4 @@ class Economy(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Economy(bot))
+
