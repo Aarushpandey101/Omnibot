@@ -4,8 +4,8 @@ import datetime
 import os
 import asyncio
 
-# --- IMPORT THE WEB SERVER ---
-import keep_alive 
+# --- IMPORT WEB SERVER ---
+import keep_alive
 
 import database as db
 from config import BOT_NAME, VERSION
@@ -29,15 +29,18 @@ class OmniBot(commands.Bot):
             intents=intents,
             help_command=None
         )
+        
+        # FIX FOR AFK SPAM: A temporary list to stop repeat welcomes
+        self.afk_cooldown = set()
 
     async def setup_hook(self):
         await db.setup()
 
-        # NOTE: Make sure your file names match these exactly (lowercase vs uppercase)
+        # NOTE: Make sure your filenames in the folder match these EXACTLY (lowercase)
         cogs = [
             "fun",
             "social",
-            "economy", 
+            "economy",    # RENAME Economy.py -> economy.py
             "moderation",
             "utility", 
             "leaderboard",
@@ -45,16 +48,19 @@ class OmniBot(commands.Bot):
             "games"
         ]
 
-        print("--- Loading Cogs ---")
+        print("--- Loading Modules ---")
         for cog in cogs:
             try:
                 await self.load_extension(cog)
                 print(f"✅ Loaded {cog}")
             except Exception as e:
                 print(f"❌ Failed to load {cog}: {e}")
-        print("--------------------")
+        print("-----------------------")
 
+        # Sync commands to make sure /ping and others show up
+        print("⏳ Syncing commands...")
         await self.tree.sync()
+        print("✅ Commands synced!")
 
 # ---------------- BOT INSTANCE ---------------- #
 
@@ -64,14 +70,13 @@ bot = OmniBot()
 
 @bot.event
 async def on_ready():
-    uptime = datetime.datetime.utcnow() - START_TIME
     print(f"🔥 {bot.user} ONLINE | {VERSION}")
-    print(f"⏱️ Uptime: {uptime}")
-
+    
+    # Show a status that changes
     await bot.change_presence(
         activity=discord.Activity(
-            type=discord.ActivityType.playing,
-            name=f"/help | {BOT_NAME}"
+            type=discord.ActivityType.watching,
+            name="over the server | /help"
         )
     )
 
@@ -82,51 +87,65 @@ async def on_message(message: discord.Message):
 
     uid = message.author.id
 
-    # Add XP (safe fail)
-    try:
-        new_lvl = await db.add_xp(uid, 5, 10)
-        if new_lvl:
-            await message.channel.send(
-                embed=discord.Embed(
-                    title="🎉 LEVEL UP!",
-                    description=f"**{message.author.name}** reached **Level {new_lvl}**!",
-                    color=0xFFD700
+    # 1. AFK CHECK (With Spam Protection)
+    # Only check DB if user is NOT in our temporary cooldown list
+    if uid not in bot.afk_cooldown:
+        try:
+            afk_reason = await db.get_afk(uid)
+            if afk_reason:
+                # Add to cooldown IMMEDIATELY to stop spam from next messages
+                bot.afk_cooldown.add(uid)
+                
+                # Remove from DB
+                await db.remove_afk(uid)
+                
+                # Send the message
+                embed = discord.Embed(
+                    description=f"👋 Welcome back, **{message.author.mention}**! I removed your AFK.",
+                    color=0x2b2d31 # Dark professional color
                 )
-            )
-    except Exception:
-        pass 
+                await message.channel.send(embed=embed, delete_after=8)
+                
+                # Remove from cooldown after a few seconds to clear memory
+                await asyncio.sleep(5)
+                bot.afk_cooldown.discard(uid)
+        except Exception:
+            pass
 
-    # AFK Check
-    try:
-        afk_reason = await db.get_afk(uid)
-        if afk_reason:
-            await db.remove_afk(uid)
-            await message.channel.send(f"👋 **{message.author.name}** is back!", delete_after=5)
-    except Exception:
-        pass
-
-    # Mention Check
+    # 2. MENTION CHECK
     if message.mentions:
         for user in message.mentions:
+            if user.bot: continue
             try:
                 reason = await db.get_afk(user.id)
                 if reason:
-                    await message.channel.send(
-                        embed=discord.Embed(
-                            title="💤 AFK",
-                            description=f"**{user.name}** is AFK: {reason}",
-                            color=0x808080
-                        ),
-                        delete_after=8
+                    embed = discord.Embed(
+                        description=f"💤 **{user.name}** is currently AFK: `{reason}`",
+                        color=0x2b2d31
                     )
+                    await message.channel.send(embed=embed, delete_after=8)
             except Exception:
                 pass
+
+    # 3. GRANT XP
+    try:
+        new_lvl = await db.add_xp(uid, 5, 10)
+        if new_lvl:
+            embed = discord.Embed(
+                title="🆙 Level Up!",
+                description=f"**{message.author.name}** is now **Level {new_lvl}**!",
+                color=0xFFD700
+            )
+            embed.set_thumbnail(url=message.author.display_avatar.url)
+            await message.channel.send(embed=embed)
+    except Exception:
+        pass
 
     await bot.process_commands(message)
 
 # ---------------- RUN ---------------- #
 
 if __name__ == "__main__":
-    # START THE WEB SERVER BEFORE THE BOT
+    # Start the web server for Render
     keep_alive.keep_alive()
     bot.run(TOKEN)
