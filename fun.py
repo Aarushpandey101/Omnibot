@@ -155,49 +155,49 @@ class Fun(commands.Cog):
 
     # ---------------- COMMANDS ---------------- #
 
-    @app_commands.command(name="truth", description="Get a random truth prompt")
+    @app_commands.command(name="truth")
     async def truth(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "truth"): return
         await self.send_embed(interaction, "🧠 Truth", draw_from_pool("truth", TRUTH_POOL))
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 
-    @app_commands.command(name="dare", description="Get a random dare challenge")
+    @app_commands.command(name="dare")
     async def dare(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "dare"): return
         await self.send_embed(interaction, "🔥 Dare", draw_from_pool("dare", DARE_POOL))
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 
-    @app_commands.command(name="wouldyourather", description="Pick between two choices")
+    @app_commands.command(name="wouldyourather")
     async def wyr(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "wyr"): return
         await self.send_embed(interaction, "🤔 Would You Rather", draw_from_pool("wyr", WYR_POOL))
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 
-    @app_commands.command(name="fact", description="Learn a quick fun fact")
+    @app_commands.command(name="fact")
     async def fact(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "fact"): return
         await self.send_embed(interaction, "📚 Fun Fact", draw_from_pool("fact", FACT_POOL))
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 
-    @app_commands.command(name="fortune", description="Reveal your fortune")
+    @app_commands.command(name="fortune")
     async def fortune(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "fortune"): return
         await self.send_embed(interaction, "🔮 Fortune", draw_from_pool("fortune", FORTUNE_POOL))
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 
-    @app_commands.command(name="dailyfact", description="Claim your daily fact")
+    @app_commands.command(name="dailyfact")
     async def dailyfact(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "dailyfact", 86400): return
         await self.send_embed(interaction, "📆 Daily Fact", draw_from_pool("fact", FACT_POOL))
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 
-    @app_commands.command(name="randomfun", description="Spin a random fun prompt")
+    @app_commands.command(name="randomfun")
     async def randomfun(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "randomfun", 10): return
         choice = random.choice([("truth", TRUTH_POOL), ("dare", DARE_POOL), ("fact", FACT_POOL)])
@@ -206,7 +206,7 @@ class Fun(commands.Cog):
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 
-    @app_commands.command(name="roast", description="Playfully roast someone")
+    @app_commands.command(name="roast")
     async def roast(self, interaction: discord.Interaction, member: discord.Member):
         if await self.check_cd(interaction, "roast"): return
         roast = draw_from_pool("roast", ROAST_POOL)
@@ -214,7 +214,7 @@ class Fun(commands.Cog):
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 
-    @app_commands.command(name="compliment", description="Give someone a compliment")
+    @app_commands.command(name="compliment")
     async def compliment(self, interaction: discord.Interaction, member: discord.Member | None = None):
         if await self.check_cd(interaction, "compliment"): return
         target = member or interaction.user
@@ -223,7 +223,7 @@ class Fun(commands.Cog):
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 
-    @app_commands.command(name="quote", description="Share an inspirational quote")
+    @app_commands.command(name="quote")
     async def quote(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "quote"): return
         text = draw_from_pool("quote", QUOTE_POOL)
@@ -231,7 +231,7 @@ class Fun(commands.Cog):
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 
-    @app_commands.command(name="confess", description="Send an anonymous confession")
+    @app_commands.command(name="confess")
     async def confess(self, interaction: discord.Interaction, text: str):
         if await self.check_cd(interaction, "confess", 30): return
         embed = discord.Embed(title="🕵️ Anonymous Confession", description=line(text), color=0x95A5A6)

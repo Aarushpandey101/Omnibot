@@ -58,18 +58,25 @@ async def fetch_global_inventory():
     return [(uid, total) for uid, total in rows]
 
 
+async def fetch_global_levels(bot: commands.Bot):
+    rows = await db.get_top_levels(PAGE_SIZE * 3)
+    return [(await resolve_user(bot, uid), lvl, xp) for uid, lvl, xp in rows]
+
+
+async def fetch_global_money(bot: commands.Bot):
+    rows = await db.get_top_money(PAGE_SIZE * 3)
+    return [(await resolve_user(bot, uid), total) for uid, total in rows]
+
+
+async def fetch_global_inventory(bot: commands.Bot):
+    rows = await db.get_top_inventory(PAGE_SIZE * 3)
+    return [(await resolve_user(bot, uid), total) for uid, total in rows]
+
+
 # ---------- EMBED BUILDER ---------- #
 
 def format_number(value: int) -> str:
     return f"{value:,}"
-
-
-def format_name(member) -> str:
-    if hasattr(member, "mention"):
-        return member.mention
-    if isinstance(member, int):
-        return f"<@{member}>"
-    return str(member)
 
 
 def build_embed(title, rows, page):
@@ -83,16 +90,14 @@ def build_embed(title, rows, page):
         prefix = MEDALS.get(i, f"`{i}`")
         if len(row) == 3:
             member, lvl, xp = row
-            name = format_name(member)
             desc += (
-                f"{prefix} **{name}**\n"
+                f"{prefix} **{member.display_name}**\n"
                 f"↳ **Lv {lvl}** • **{format_number(xp)} XP**\n"
             )
         else:
             member, value = row
-            name = format_name(member)
             desc += (
-                f"{prefix} **{name}**\n"
+                f"{prefix} **{member.display_name}**\n"
                 f"↳ **{format_number(value)}**\n"
             )
 
@@ -224,6 +229,86 @@ class GlobalLeaderboardView(discord.ui.View):
             self.cache["levels"] = await fetch_global_levels()
             self.cache["money"] = await fetch_global_money()
             self.cache["inventory"] = await fetch_global_inventory()
+
+    def get_rows(self):
+        return self.cache[self.mode]
+
+    async def update(self, interaction):
+        rows = self.get_rows()
+        embed = build_embed(
+            {
+                "levels": "🌍 Global Top Levels",
+                "money": "💰 Global Richest",
+                "inventory": "🎒 Global Inventory"
+            }[self.mode],
+            rows,
+            self.page
+        )
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="🆙 Levels", style=discord.ButtonStyle.primary)
+    async def levels(self, interaction, _):
+        await self.load()
+        self.mode = "levels"
+        self.page = 0
+        await self.update(interaction)
+
+    @discord.ui.button(label="💰 Richest", style=discord.ButtonStyle.success)
+    async def money(self, interaction, _):
+        await self.load()
+        self.mode = "money"
+        self.page = 0
+        await self.update(interaction)
+
+    @discord.ui.button(label="🎒 Inventory", style=discord.ButtonStyle.secondary)
+    async def inventory(self, interaction, _):
+        await self.load()
+        self.mode = "inventory"
+        self.page = 0
+        await self.update(interaction)
+
+    @discord.ui.button(label="⬅️ Prev", style=discord.ButtonStyle.gray)
+    async def prev(self, interaction, _):
+        if self.page > 0:
+            self.page -= 1
+            await self.update(interaction)
+        else:
+            await interaction.response.defer()
+
+    @discord.ui.button(label="➡️ Next", style=discord.ButtonStyle.gray)
+    async def next(self, interaction, _):
+        rows = self.get_rows()
+        if (self.page + 1) * PAGE_SIZE < len(rows):
+            self.page += 1
+            await self.update(interaction)
+        else:
+            await interaction.response.defer()
+
+    @app_commands.command(name="globalleaderboard", description="View global leaderboards")
+    async def globalleaderboard(self, interaction: discord.Interaction):
+        view = GlobalLeaderboardView(self.bot)
+        await view.load()
+        embed = build_embed(
+            "🌍 Global Top Levels",
+            view.cache["levels"],
+            0
+        )
+        await interaction.response.send_message(embed=embed, view=view)
+
+
+class GlobalLeaderboardView(discord.ui.View):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(timeout=120)
+        self.bot = bot
+        self.page = 0
+        self.mode = "levels"
+        self.cache = {}
+
+    async def load(self):
+        if "levels" not in self.cache:
+            self.cache["levels"] = await fetch_global_levels(self.bot)
+            self.cache["money"] = await fetch_global_money(self.bot)
+            self.cache["inventory"] = await fetch_global_inventory(self.bot)
 
     def get_rows(self):
         return self.cache[self.mode]

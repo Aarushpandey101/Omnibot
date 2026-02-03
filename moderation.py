@@ -59,25 +59,6 @@ class Moderation(commands.Cog):
         embed.set_footer(text="OmniBot • Moderation Suite")
         await interaction.response.send_message(embed=embed)
 
-    # ---- SOFTBAN ----
-    @app_commands.command(name="softban", description="Softban a user (ban + unban)")
-    @app_commands.checks.has_permissions(ban_members=True)
-    async def softban(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason"):
-        if member.top_role >= interaction.user.top_role:
-            return await interaction.response.send_message("❌ You cannot softban this user.", ephemeral=True)
-        await member.ban(reason=reason, delete_message_days=1)
-        await interaction.guild.unban(member)
-        embed = discord.Embed(
-            title="🧽 Softban Executed",
-            description=line("Messages cleared and user removed."),
-            color=0xE67E22
-        )
-        embed.add_field(name="Member", value=f"{member} ({member.id})", inline=True)
-        embed.add_field(name="Moderator", value=interaction.user.mention, inline=True)
-        embed.add_field(name="Reason", value=reason, inline=False)
-        embed.set_footer(text="OmniBot • Moderation Suite")
-        await interaction.response.send_message(embed=embed)
-
     # ---- UNBAN ----
     @app_commands.command(name="unban", description="Unban a user ID")
     @app_commands.checks.has_permissions(ban_members=True)
