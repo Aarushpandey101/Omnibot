@@ -42,6 +42,7 @@ class OmniBot(commands.Bot):
             "social",
             "economy",    # RENAME Economy.py -> economy.py
             "moderation",
+            "automod",
             "utility", 
             "leaderboard",
             "profile",

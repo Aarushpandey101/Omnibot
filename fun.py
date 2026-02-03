@@ -15,6 +15,7 @@ from database import (
 
 FUN_XP = (5, 15)
 CURRENCY_REWARD = (10, 50)
+PREMIUM_BLUE = 0x4C5FD7
 
 ITEM_EFFECTS = {
     "Laptop": {"xp_bonus": 1.5},
@@ -32,6 +33,21 @@ TRUTH_POOL = [
     "What’s a fear you hide?",
     "Who do you stalk the most?",
     "What’s the worst DM you’ve sent?",
+]
+
+COMPLIMENT_POOL = [
+    "You radiate main character energy.",
+    "Your vibe is premium-grade.",
+    "You make chaos look elegant.",
+    "Your style is effortlessly iconic.",
+    "You’re the reason the server feels alive."
+]
+
+QUOTE_POOL = [
+    "“Success is the sum of small efforts, repeated daily.” — R. Collier",
+    "“Do it scared. Do it anyway.” — Unknown",
+    "“Dreams don’t work unless you do.” — J. Maxwell",
+    "“Simplicity is the ultimate sophistication.” — L. da Vinci"
 ]
 
 DARE_POOL = [
@@ -70,7 +86,14 @@ ROAST_POOL = [
 # ---------------- STATE ---------------- #
 
 _shuffle_state = {
-    "truth": [], "dare": [], "wyr": [], "fact": [], "fortune": [], "roast": []
+    "truth": [],
+    "dare": [],
+    "wyr": [],
+    "fact": [],
+    "fortune": [],
+    "roast": [],
+    "compliment": [],
+    "quote": []
 }
 
 def draw_from_pool(name: str, source: list) -> str:
@@ -80,6 +103,10 @@ def draw_from_pool(name: str, source: list) -> str:
         random.shuffle(pool)
     return pool.pop()
 
+
+def format_number(value: int) -> str:
+    return f"{value:,}"
+
 # ---------------- COG ---------------- #
 
 class Fun(commands.Cog):
@@ -88,11 +115,13 @@ class Fun(commands.Cog):
 
     # ---------- HELPERS ---------- #
 
-    async def send_embed(self, interaction, title, description, gif_key=None, color=0x00BFFF):
+    async def send_embed(self, interaction, title, description, gif_key=None, color=PREMIUM_BLUE):
         embed = discord.Embed(title=title, description=line(description), color=color)
         if gif_key:
             gif = await get_gif(gif_key)
-            if gif: embed.set_image(url=gif)
+            if gif:
+                embed.set_image(url=gif)
+        embed.set_footer(text="OmniBot • Premium Fun Suite")
         await interaction.response.send_message(embed=embed)
 
     async def reward_user(self, uid: int):
@@ -102,8 +131,19 @@ class Fun(commands.Cog):
         for item, _ in inv:
             eff = ITEM_EFFECTS.get(item)
             if eff:
-                if "coin_bonus" in eff: reward = int(reward * eff["coin_bonus"])
+                if "coin_bonus" in eff:
+                    reward = int(reward * eff["coin_bonus"])
         await add_wallet(uid, reward)
+        return reward
+
+    async def send_reward_notice(self, interaction, reward: int):
+        embed = discord.Embed(
+            title="✨ Premium Bonus",
+            description=line(f"You earned **{format_number(reward)}** coins for playing!"),
+            color=0xF1C40F
+        )
+        embed.set_footer(text="OmniBot • Rewards")
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
     async def check_cd(self, interaction, name, seconds=5):
         cd = await get_cooldown(interaction.user.id, name)
@@ -119,37 +159,43 @@ class Fun(commands.Cog):
     async def truth(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "truth"): return
         await self.send_embed(interaction, "🧠 Truth", draw_from_pool("truth", TRUTH_POOL))
-        await self.reward_user(interaction.user.id)
+        reward = await self.reward_user(interaction.user.id)
+        await self.send_reward_notice(interaction, reward)
 
     @app_commands.command(name="dare")
     async def dare(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "dare"): return
         await self.send_embed(interaction, "🔥 Dare", draw_from_pool("dare", DARE_POOL))
-        await self.reward_user(interaction.user.id)
+        reward = await self.reward_user(interaction.user.id)
+        await self.send_reward_notice(interaction, reward)
 
     @app_commands.command(name="wouldyourather")
     async def wyr(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "wyr"): return
         await self.send_embed(interaction, "🤔 Would You Rather", draw_from_pool("wyr", WYR_POOL))
-        await self.reward_user(interaction.user.id)
+        reward = await self.reward_user(interaction.user.id)
+        await self.send_reward_notice(interaction, reward)
 
     @app_commands.command(name="fact")
     async def fact(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "fact"): return
         await self.send_embed(interaction, "📚 Fun Fact", draw_from_pool("fact", FACT_POOL))
-        await self.reward_user(interaction.user.id)
+        reward = await self.reward_user(interaction.user.id)
+        await self.send_reward_notice(interaction, reward)
 
     @app_commands.command(name="fortune")
     async def fortune(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "fortune"): return
         await self.send_embed(interaction, "🔮 Fortune", draw_from_pool("fortune", FORTUNE_POOL))
-        await self.reward_user(interaction.user.id)
+        reward = await self.reward_user(interaction.user.id)
+        await self.send_reward_notice(interaction, reward)
 
     @app_commands.command(name="dailyfact")
     async def dailyfact(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "dailyfact", 86400): return
         await self.send_embed(interaction, "📆 Daily Fact", draw_from_pool("fact", FACT_POOL))
-        await self.reward_user(interaction.user.id)
+        reward = await self.reward_user(interaction.user.id)
+        await self.send_reward_notice(interaction, reward)
 
     @app_commands.command(name="randomfun")
     async def randomfun(self, interaction: discord.Interaction):
@@ -157,21 +203,42 @@ class Fun(commands.Cog):
         choice = random.choice([("truth", TRUTH_POOL), ("dare", DARE_POOL), ("fact", FACT_POOL)])
         text = draw_from_pool(choice[0], choice[1])
         await self.send_embed(interaction, "🎲 Random Fun", text)
-        await self.reward_user(interaction.user.id)
+        reward = await self.reward_user(interaction.user.id)
+        await self.send_reward_notice(interaction, reward)
 
     @app_commands.command(name="roast")
     async def roast(self, interaction: discord.Interaction, member: discord.Member):
         if await self.check_cd(interaction, "roast"): return
         roast = draw_from_pool("roast", ROAST_POOL)
         await self.send_embed(interaction, "🔥 Roast", f"{member.mention}, {roast}")
-        await self.reward_user(interaction.user.id)
+        reward = await self.reward_user(interaction.user.id)
+        await self.send_reward_notice(interaction, reward)
+
+    @app_commands.command(name="compliment")
+    async def compliment(self, interaction: discord.Interaction, member: discord.Member | None = None):
+        if await self.check_cd(interaction, "compliment"): return
+        target = member or interaction.user
+        text = draw_from_pool("compliment", COMPLIMENT_POOL)
+        await self.send_embed(interaction, "✨ Compliment", f"{target.mention}, {text}")
+        reward = await self.reward_user(interaction.user.id)
+        await self.send_reward_notice(interaction, reward)
+
+    @app_commands.command(name="quote")
+    async def quote(self, interaction: discord.Interaction):
+        if await self.check_cd(interaction, "quote"): return
+        text = draw_from_pool("quote", QUOTE_POOL)
+        await self.send_embed(interaction, "📣 Quote", text)
+        reward = await self.reward_user(interaction.user.id)
+        await self.send_reward_notice(interaction, reward)
 
     @app_commands.command(name="confess")
     async def confess(self, interaction: discord.Interaction, text: str):
         if await self.check_cd(interaction, "confess", 30): return
         embed = discord.Embed(title="🕵️ Anonymous Confession", description=line(text), color=0x95A5A6)
+        embed.set_footer(text="OmniBot • Premium Fun Suite")
         await interaction.response.send_message(embed=embed)
-        await self.reward_user(interaction.user.id)
+        reward = await self.reward_user(interaction.user.id)
+        await self.send_reward_notice(interaction, reward)
 
 async def setup(bot):
     await bot.add_cog(Fun(bot))
