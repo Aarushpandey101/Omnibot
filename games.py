@@ -11,6 +11,7 @@ from database import add_xp, add_wallet, get_balance
 
 GAME_XP = (10, 25)
 GAME_COINS = (25, 100)
+PREMIUM_BLUE = 0x4C5FD7
 
 
 # ---------- HELPERS ---------- #
@@ -21,6 +22,10 @@ async def reward(uid: int, multiplier: float = 1.0):
     await add_xp(uid, xp, xp)
     await add_wallet(uid, coins)
     return xp, coins
+
+
+def format_number(value: int) -> str:
+    return f"{value:,}"
 
 
 # ---------- GAMES COG ---------- #
@@ -59,19 +64,20 @@ class Games(commands.Cog):
 
         if mult > 0:
             xp, coins = await reward(interaction.user.id, mult)
-            reward_txt = f"\n\n🏆 +{xp} XP | +{coins} coins"
+            reward_txt = f"🏆 +{format_number(xp)} XP\n💰 +{format_number(coins)} coins"
         else:
-            reward_txt = ""
+            reward_txt = "No rewards this round."
 
         embed = discord.Embed(
             title="✊ Rock Paper Scissors",
-            description=line(
-                f"You chose **{choice}**\n"
-                f"I chose **{bot_choice}**\n\n"
-                f"{result}{reward_txt}"
-            ),
-            color=0x00BFFF
+            description=line("Best of luck!"),
+            color=PREMIUM_BLUE
         )
+        embed.add_field(name="Your Move", value=f"**{choice.title()}**", inline=True)
+        embed.add_field(name="Omni Move", value=f"**{bot_choice.title()}**", inline=True)
+        embed.add_field(name="Result", value=result, inline=False)
+        embed.add_field(name="Rewards", value=reward_txt, inline=False)
+        embed.set_footer(text="OmniBot • Arcade Series")
 
         await interaction.response.send_message(embed=embed)
 
@@ -94,22 +100,26 @@ class Games(commands.Cog):
 
         if correct:
             xp, coins = await reward(interaction.user.id)
-            result = f"🎉 Correct!\n🏆 +{xp} XP | +{coins} coins"
+            result = "🎉 Correct!"
+            rewards = f"🏆 +{format_number(xp)} XP\n💰 +{format_number(coins)} coins"
             color = 0x2ECC71
         else:
             result = "💀 Wrong guess!"
+            rewards = "No rewards this round."
             color = 0xE74C3C
 
-        await interaction.response.send_message(
-            embed=discord.Embed(
-                title="🔢 Higher or Lower",
-                description=line(
-                    f"Number was **{a}**\n"
-                    f"Next was **{b}**\n\n{result}"
-                ),
-                color=color
-            )
+        embed = discord.Embed(
+            title="🔢 Higher or Lower",
+            description=line("Can you read the numbers?"),
+            color=color
         )
+        embed.add_field(name="First Number", value=f"**{a}**", inline=True)
+        embed.add_field(name="Next Number", value=f"**{b}**", inline=True)
+        embed.add_field(name="Result", value=result, inline=False)
+        embed.add_field(name="Rewards", value=rewards, inline=False)
+        embed.set_footer(text="OmniBot • Arcade Series")
+
+        await interaction.response.send_message(embed=embed)
 
     # ---------- GUESS THE NUMBER ---------- #
 
@@ -126,19 +136,30 @@ class Games(commands.Cog):
 
         if number == secret:
             xp, coins = await reward(interaction.user.id, 1.2)
-            msg = f"🎉 You guessed it!\n🏆 +{xp} XP | +{coins} coins"
+            msg = "🎉 You guessed it!"
+            rewards = f"🏆 +{format_number(xp)} XP\n💰 +{format_number(coins)} coins"
             color = 0xF1C40F
+        elif abs(number - secret) <= 2:
+            xp, coins = await reward(interaction.user.id, 0.5)
+            msg = "😮 So close! Bonus consolation."
+            rewards = f"🏆 +{format_number(xp)} XP\n💰 +{format_number(coins)} coins"
+            color = 0xF39C12
         else:
-            msg = f"💀 Wrong! It was **{secret}**"
+            msg = "💀 Not this time."
+            rewards = "No rewards this round."
             color = 0x95A5A6
 
-        await interaction.response.send_message(
-            embed=discord.Embed(
-                title="🎯 Guess the Number",
-                description=line(msg),
-                color=color
-            )
+        embed = discord.Embed(
+            title="🎯 Guess the Number",
+            description=line("Lock in your instincts."),
+            color=color
         )
+        embed.add_field(name="Your Guess", value=f"**{number}**", inline=True)
+        embed.add_field(name="Secret Number", value=f"**{secret}**", inline=True)
+        embed.add_field(name="Result", value=msg, inline=False)
+        embed.add_field(name="Rewards", value=rewards, inline=False)
+        embed.set_footer(text="OmniBot • Arcade Series")
+        await interaction.response.send_message(embed=embed)
 
     # ---------- FAST MATH ---------- #
 
@@ -174,23 +195,27 @@ class Games(commands.Cog):
             if int(msg.content) == answer:
                 mult = max(0.5, 1.5 - elapsed / 5)
                 xp, coins = await reward(interaction.user.id, mult)
-                result = f"🎉 Correct in {elapsed:.2f}s!\n🏆 +{xp} XP | +{coins} coins"
+                result = f"🎉 Correct in {elapsed:.2f}s!"
+                rewards = f"🏆 +{format_number(xp)} XP\n💰 +{format_number(coins)} coins"
                 color = 0x2ECC71
             else:
                 result = "💀 Wrong answer!"
+                rewards = "No rewards this round."
                 color = 0xE74C3C
 
         except asyncio.TimeoutError:
             result = "⌛ Too slow!"
+            rewards = "No rewards this round."
             color = 0x7F8C8D
 
-        await interaction.channel.send(
-            embed=discord.Embed(
-                title="🧠 Fast Math Result",
-                description=line(result),
-                color=color
-            )
+        embed = discord.Embed(
+            title="🧠 Fast Math Result",
+            description=line(result),
+            color=color
         )
+        embed.add_field(name="Rewards", value=rewards, inline=False)
+        embed.set_footer(text="OmniBot • Arcade Series")
+        await interaction.channel.send(embed=embed)
 
     # ---------- DICE BATTLE (PvP) ---------- #
 
@@ -208,26 +233,62 @@ class Games(commands.Cog):
 
         if user_roll > opp_roll:
             xp, coins = await reward(interaction.user.id, 1.2)
-            result = f"🎉 You win!\n🏆 +{xp} XP | +{coins} coins"
+            result = "🎉 You win!"
+            rewards = f"🏆 +{format_number(xp)} XP\n💰 +{format_number(coins)} coins"
             color = 0x2ECC71
         elif user_roll < opp_roll:
             result = "💀 You lost!"
+            rewards = "No rewards this round."
             color = 0xE74C3C
         else:
             result = "🤝 Draw!"
+            rewards = "No rewards this round."
             color = 0x95A5A6
 
-        await interaction.response.send_message(
-            embed=discord.Embed(
-                title="🎲 Dice Battle",
-                description=line(
-                    f"You rolled **{user_roll}**\n"
-                    f"{opponent.name} rolled **{opp_roll}**\n\n"
-                    f"{result}"
-                ),
-                color=color
-            )
+        embed = discord.Embed(
+            title="🎲 Dice Battle",
+            description=line("Battle of pure luck."),
+            color=color
         )
+        embed.add_field(name="Your Roll", value=f"**{user_roll}**", inline=True)
+        embed.add_field(name=f"{opponent.display_name}'s Roll", value=f"**{opp_roll}**", inline=True)
+        embed.add_field(name="Result", value=result, inline=False)
+        embed.add_field(name="Rewards", value=rewards, inline=False)
+        embed.set_footer(text="OmniBot • Arcade Series")
+        await interaction.response.send_message(embed=embed)
+
+    # ---------- LUCKY SPIN ---------- #
+
+    @app_commands.command(name="luckyspin", description="Spin the wheel for surprise rewards")
+    async def luckyspin(self, interaction: discord.Interaction):
+        outcomes = [
+            ("💫 Small Win", 0.6),
+            ("✨ Nice Win", 1.0),
+            ("🔥 Big Win", 1.4),
+            ("💀 Bust", 0),
+            ("🎉 Jackpot", 2.0)
+        ]
+        result, mult = random.choices(
+            outcomes,
+            weights=[30, 25, 15, 20, 10],
+            k=1
+        )[0]
+
+        if mult > 0:
+            xp, coins = await reward(interaction.user.id, mult)
+            rewards = f"🏆 +{format_number(xp)} XP\n💰 +{format_number(coins)} coins"
+        else:
+            rewards = "No rewards this round."
+
+        embed = discord.Embed(
+            title="🎡 Lucky Spin",
+            description=line("Spinning the premium wheel..."),
+            color=0x9B59B6
+        )
+        embed.add_field(name="Outcome", value=result, inline=False)
+        embed.add_field(name="Rewards", value=rewards, inline=False)
+        embed.set_footer(text="OmniBot • Arcade Series")
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot):

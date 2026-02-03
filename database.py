@@ -15,7 +15,8 @@ async def setup():
             level INTEGER DEFAULT 1,
             premium INTEGER DEFAULT 0,
             reputation INTEGER DEFAULT 0,
-            daily_claim INTEGER DEFAULT 0
+            daily_claim INTEGER DEFAULT 0,
+            is_afk INTEGER DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS inventory (
@@ -49,6 +50,10 @@ async def setup():
             timestamp INTEGER
         );
         """)
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN is_afk INTEGER DEFAULT 0")
+        except aiosqlite.OperationalError:
+            pass
         await db.commit()
 
 # --- USER HELPERS ---
@@ -56,7 +61,6 @@ async def ensure_user(uid: int):
     async with aiosqlite.connect(DB_FILE) as db:
         await db.execute("INSERT OR IGNORE INTO users(user_id) VALUES(?)", (uid,))
         await db.execute("INSERT OR IGNORE INTO warns(user_id) VALUES(?)", (uid,))
-        await db.execute("INSERT OR IGNORE INTO afk(user_id) VALUES(?)", (uid,))
         await db.commit()
 
 # --- ECONOMY ---
@@ -162,11 +166,16 @@ async def set_afk(uid: int, reason: str = "AFK"):
     await ensure_user(uid)
     async with aiosqlite.connect(DB_FILE) as db:
         await db.execute("INSERT OR REPLACE INTO afk(user_id, reason) VALUES(?,?)", (uid, reason))
+        await db.execute("UPDATE users SET is_afk = 1 WHERE user_id=?", (uid,))
         await db.commit()
 
 async def get_afk(uid: int):
     await ensure_user(uid)
     async with aiosqlite.connect(DB_FILE) as db:
+        async with db.execute("SELECT is_afk FROM users WHERE user_id=?", (uid,)) as cur:
+            row = await cur.fetchone()
+            if not row or row[0] == 0:
+                return None
         async with db.execute("SELECT reason FROM afk WHERE user_id=?", (uid,)) as cur:
             row = await cur.fetchone()
             return row[0] if row else None
@@ -175,6 +184,7 @@ async def remove_afk(uid: int):
     await ensure_user(uid)
     async with aiosqlite.connect(DB_FILE) as db:
         await db.execute("DELETE FROM afk WHERE user_id=?", (uid,))
+        await db.execute("UPDATE users SET is_afk = 0 WHERE user_id=?", (uid,))
         await db.commit()
 
 # --- COOLDOWNS ---

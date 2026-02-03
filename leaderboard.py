@@ -7,6 +7,7 @@ import database as db
 from personality import line
 
 PAGE_SIZE = 10
+MEDALS = {1: "🥇", 2: "🥈", 3: "🥉"}
 
 
 # ---------- DATA FETCHERS ---------- #
@@ -44,25 +45,39 @@ async def fetch_inventory(guild: discord.Guild):
 
 # ---------- EMBED BUILDER ---------- #
 
+def format_number(value: int) -> str:
+    return f"{value:,}"
+
+
 def build_embed(title, rows, page):
     start = page * PAGE_SIZE
     end = start + PAGE_SIZE
     sliced = rows[start:end]
+    total_pages = max(1, (len(rows) + PAGE_SIZE - 1) // PAGE_SIZE)
 
     desc = ""
     for i, row in enumerate(sliced, start=start + 1):
+        prefix = MEDALS.get(i, f"`{i}`")
         if len(row) == 3:
             member, lvl, xp = row
-            desc += f"**{i}. {member.name}** — Lv {lvl} ({xp} XP)\n"
+            desc += (
+                f"{prefix} **{member.display_name}**\n"
+                f"↳ **Lv {lvl}** • **{format_number(xp)} XP**\n"
+            )
         else:
             member, value = row
-            desc += f"**{i}. {member.name}** — {value}\n"
+            desc += (
+                f"{prefix} **{member.display_name}**\n"
+                f"↳ **{format_number(value)}**\n"
+            )
 
-    return discord.Embed(
+    embed = discord.Embed(
         title=title,
         description=line(desc or "No data yet."),
         color=0xF1C40F
     )
+    embed.set_footer(text=f"Page {page + 1}/{total_pages} • OmniBot Leaderboards")
+    return embed
 
 
 # ---------- VIEW ---------- #
