@@ -86,7 +86,7 @@ class HelpEmbeds:
                 "`/truth` `/dare` `/wouldyourather`\n"
                 "`/fact` `/fortune` `/dailyfact`\n"
                 "`/randomfun` `/compliment` `/quote`\n"
-                "`/confess` `/roast`"
+                "`/confess`"
             ),
             color=0xFF69B4
         )

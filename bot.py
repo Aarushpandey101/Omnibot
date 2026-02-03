@@ -108,10 +108,17 @@ async def on_message(message: discord.Message):
                     color=0x2b2d31 # Dark professional color
                 )
                 await message.channel.send(embed=embed, delete_after=8)
-                
+
                 # Remove from cooldown after a few seconds to clear memory
                 await asyncio.sleep(5)
                 bot.afk_cooldown.discard(uid)
+
+                # Allow AFK clearing again after a short grace period
+                async def clear_recently_cleared(user_id: int):
+                    await asyncio.sleep(60)
+                    bot.afk_recently_cleared.discard(user_id)
+
+                asyncio.create_task(clear_recently_cleared(uid))
         except Exception:
             pass
 
