@@ -1,17 +1,17 @@
 import random
 
 FLAVOR_LINES = [
-    "I did not overthink this. I swear.",
-    "This felt necessary.",
-    "Emotion detected. Response deployed.",
-    "I had no choice.",
-    "Science approved this."
+    "Premium response delivered.",
+    "Vibes calibrated.",
+    "Signal received. Style applied.",
+    "Optimized for maximum drip.",
+    "Response upgraded successfully."
 ]
 
 RARE_LINES = [
     "⚠️ Rare moment detected.",
-    "✨ This doesn’t happen often.",
-    "👀 You unlocked a rare response."
+    "✨ Ultra-premium response deployed.",
+    "👀 You unlocked a prestige line."
 ]
 
 def line(text: str, rare_chance: float = 0.05) -> str:
