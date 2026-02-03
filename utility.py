@@ -8,93 +8,163 @@ import os
 
 from config import BOT_NAME, VERSION
 from personality import line
+import database as db
 
 # Capture start time for uptime command
 START_TIME = datetime.datetime.utcnow()
 
 # ---------------- HELP UI ---------------- #
 
+class HelpSelect(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Overview", value="main", emoji="🌌"),
+            discord.SelectOption(label="Fun", value="fun", emoji="🎉"),
+            discord.SelectOption(label="Economy", value="economy", emoji="💰"),
+            discord.SelectOption(label="Moderation", value="moderation", emoji="🛡️"),
+            discord.SelectOption(label="Social", value="social", emoji="🤝"),
+            discord.SelectOption(label="Games", value="games", emoji="🎮"),
+            discord.SelectOption(label="Utility", value="stats", emoji="📊")
+        ]
+        super().__init__(
+            placeholder="Choose a command category…",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        embed = HelpEmbeds.main()
+        selection = self.values[0]
+        if selection == "fun":
+            embed = HelpEmbeds.fun()
+        elif selection == "economy":
+            embed = HelpEmbeds.economy()
+        elif selection == "moderation":
+            embed = HelpEmbeds.moderation()
+        elif selection == "social":
+            embed = HelpEmbeds.social()
+        elif selection == "games":
+            embed = HelpEmbeds.games()
+        elif selection == "stats":
+            embed = HelpEmbeds.stats()
+        await interaction.response.edit_message(embed=embed, view=self.view)
+
+
 class HelpView(discord.ui.View):
     def __init__(self):
-        super().__init__(timeout=120)
-
-    @discord.ui.button(label="🎉 Fun", style=discord.ButtonStyle.primary)
-    async def fun(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.edit_message(embed=HelpEmbeds.fun())
-
-    @discord.ui.button(label="💰 Economy", style=discord.ButtonStyle.success)
-    async def economy(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.edit_message(embed=HelpEmbeds.economy())
-
-    @discord.ui.button(label="🛡️ Moderation", style=discord.ButtonStyle.danger)
-    async def moderation(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.edit_message(embed=HelpEmbeds.moderation())
-
-    @discord.ui.button(label="📊 Stats", style=discord.ButtonStyle.secondary)
-    async def stats(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.edit_message(embed=HelpEmbeds.stats())
+        super().__init__(timeout=180)
+        self.add_item(HelpSelect())
 
 
 class HelpEmbeds:
     @staticmethod
     def main():
-        return discord.Embed(
+        embed = discord.Embed(
             title="🌌 OmniBot Command Center",
             description=line(
                 f"**Welcome to {BOT_NAME} — {VERSION}**\n\n"
-                "Use the buttons below to explore command categories.\n"
-                "Designed to feel better than premium bots."
+                "Use the dropdown below to reveal the full command set."
             ),
-            color=0x00BFFF
+            color=0x4C5FD7
         )
+        embed.add_field(
+            name="✨ Premium Tip",
+            value="Use `/profile` and `/leaderboard` for the new premium UI.",
+            inline=False
+        )
+        return embed
 
     @staticmethod
     def fun():
-        return discord.Embed(
+        embed = discord.Embed(
             title="🎉 Fun Commands",
             description=(
                 "`/meme` `/joke` `/trivia`\n"
                 "`/slap` `/hug` `/kiss` `/poke`\n"
-                "`/hack` `/8ball` `/roast`"
+                "`/hack` `/8ball` `/roast`\n"
+                "`/truth` `/dare` `/wouldyourather`\n"
+                "`/fact` `/fortune` `/dailyfact`\n"
+                "`/randomfun` `/compliment` `/quote`\n"
+                "`/confess` `/roast`"
             ),
             color=0xFF69B4
         )
+        embed.set_footer(text="OmniBot • Premium UI")
+        return embed
 
     @staticmethod
     def economy():
-        return discord.Embed(
+        embed = discord.Embed(
             title="💰 Economy Commands",
             description=(
                 "`/balance` `/daily` `/work`\n"
+                "`/beg` `/crime` `/deposit` `/withdraw`\n"
                 "`/shop` `/buy` `/sell`\n"
                 "`/slots` `/dice` `/coinflip`"
             ),
             color=0x2ECC71
         )
+        embed.set_footer(text="OmniBot • Premium UI")
+        return embed
 
     @staticmethod
     def moderation():
-        return discord.Embed(
+        embed = discord.Embed(
             title="🛡️ Moderation Commands",
             description=(
-                "`/kick` `/ban` `/softban`\n"
+                "`/kick` `/ban` `/softban` `/unban`\n"
                 "`/timeout` `/warn` `/purge`\n"
-                "`/lockdown` `/unlockdown`"
+                "`/nuke`"
             ),
             color=0xE74C3C
         )
+        embed.set_footer(text="OmniBot • Premium UI")
+        return embed
 
     @staticmethod
-    def stats():
-        return discord.Embed(
-            title="📊 Stats & Utility",
+    def social():
+        embed = discord.Embed(
+            title="🤝 Social Commands",
             description=(
-                "`/profile` `/leaderboard`\n"
-                "`/ping` `/uptime` `/stats`\n"
-                "`/invite` `/about`"
+                "`/hug` `/slap` `/poke` `/kiss`\n"
+                "`/highfive` `/dance` `/cry`\n"
+                "`/pat` `/wave`"
             ),
             color=0x9B59B6
         )
+        embed.set_footer(text="OmniBot • Premium UI")
+        return embed
+
+    @staticmethod
+    def games():
+        embed = discord.Embed(
+            title="🎮 Game Commands",
+            description=(
+                "`/rps` `/higherlower` `/guessnumber`\n"
+                "`/fastmath` `/dicebattle` `/luckyspin`"
+            ),
+            color=0x4C5FD7
+        )
+        embed.set_footer(text="OmniBot • Premium UI")
+        return embed
+
+    @staticmethod
+    def stats():
+        embed = discord.Embed(
+            title="📊 Stats & Utility",
+            description=(
+                "`/profile` `/leaderboard`\n"
+                "`/globalleaderboard`\n"
+                "`/ping` `/uptime` `/stats`\n"
+                "`/afk`\n"
+                "`/invite` `/about`\n"
+                "`/serverinfo` `/userinfo` `/avatar`"
+            ),
+            color=0x9B59B6
+        )
+        embed.set_footer(text="OmniBot • Premium UI")
+        return embed
 
 
 # ---------------- UTILITY COG ---------------- #
@@ -107,8 +177,22 @@ class Utility(commands.Cog):
     @app_commands.command(name="help", description="Show all commands")
     async def help(self, interaction: discord.Interaction):
         embed = HelpEmbeds.main()
-        embed.set_footer(text=f"{BOT_NAME} • {VERSION}")
+        embed.set_footer(text=f"{BOT_NAME} • {VERSION} • Premium UI")
         await interaction.response.send_message(embed=embed, view=HelpView())
+
+    # AFK
+    @app_commands.command(name="afk", description="Set your AFK status")
+    async def afk(self, interaction: discord.Interaction, reason: str = "AFK"):
+        await db.set_afk(interaction.user.id, reason)
+        if hasattr(self.bot, "afk_recently_cleared"):
+            self.bot.afk_recently_cleared.discard(interaction.user.id)
+        embed = discord.Embed(
+            title="💤 AFK Enabled",
+            description=line(f"{interaction.user.mention} is now AFK: `{reason}`"),
+            color=0x4C5FD7
+        )
+        embed.set_footer(text=f"{BOT_NAME} • AFK Status")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # PING
     @app_commands.command(name="ping", description="Check bot latency")
@@ -145,6 +229,64 @@ class Utility(commands.Cog):
         embed.add_field(name="Latency", value=f"`{round(self.bot.latency*1000)}ms`", inline=True)
         embed.add_field(name="Library", value=f"`discord.py`", inline=True)
         
+        await interaction.response.send_message(embed=embed)
+
+    # SERVER INFO
+    @app_commands.command(name="serverinfo", description="View server details")
+    async def serverinfo(self, interaction: discord.Interaction):
+        guild = interaction.guild
+        if not guild:
+            await interaction.response.send_message("❌ Server info is only available in guilds.", ephemeral=True)
+            return
+
+        embed = discord.Embed(
+            title="🏰 Server Overview",
+            description=line(f"**{guild.name}**"),
+            color=0x4C5FD7
+        )
+        embed.add_field(name="Owner", value=f"{guild.owner} ({guild.owner_id})", inline=False)
+        embed.add_field(name="Members", value=f"`{guild.member_count}`", inline=True)
+        embed.add_field(name="Roles", value=f"`{len(guild.roles)}`", inline=True)
+        embed.add_field(name="Channels", value=f"`{len(guild.channels)}`", inline=True)
+        embed.add_field(name="Created", value=guild.created_at.strftime("%Y-%m-%d"), inline=True)
+        if guild.icon:
+            embed.set_thumbnail(url=guild.icon.url)
+        embed.set_footer(text=f"{BOT_NAME} • Server Intelligence")
+        await interaction.response.send_message(embed=embed)
+
+    # USER INFO
+    @app_commands.command(name="userinfo", description="View user details")
+    async def userinfo(self, interaction: discord.Interaction, member: discord.Member | None = None):
+        member = member or interaction.user
+        roles = [role.mention for role in member.roles if role.name != "@everyone"]
+        roles_display = ", ".join(roles[:8]) if roles else "No roles"
+        if len(roles) > 8:
+            roles_display += f" (+{len(roles) - 8} more)"
+
+        embed = discord.Embed(
+            title="👤 User Profile",
+            description=line(f"{member.mention}"),
+            color=0x9B59B6
+        )
+        embed.add_field(name="Username", value=f"{member} ({member.id})", inline=False)
+        embed.add_field(name="Joined", value=member.joined_at.strftime("%Y-%m-%d"), inline=True)
+        embed.add_field(name="Created", value=member.created_at.strftime("%Y-%m-%d"), inline=True)
+        embed.add_field(name="Roles", value=roles_display, inline=False)
+        embed.set_thumbnail(url=member.display_avatar.url)
+        embed.set_footer(text=f"{BOT_NAME} • User Intelligence")
+        await interaction.response.send_message(embed=embed)
+
+    # AVATAR
+    @app_commands.command(name="avatar", description="Show a user's avatar")
+    async def avatar(self, interaction: discord.Interaction, member: discord.Member | None = None):
+        member = member or interaction.user
+        embed = discord.Embed(
+            title="🖼️ Avatar",
+            description=line(f"{member.mention}"),
+            color=0x4C5FD7
+        )
+        embed.set_image(url=member.display_avatar.url)
+        embed.set_footer(text=f"{BOT_NAME} • Avatar Vault")
         await interaction.response.send_message(embed=embed)
 
     # INVITE

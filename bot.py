@@ -30,8 +30,9 @@ class OmniBot(commands.Bot):
             help_command=None
         )
         
-        # FIX FOR AFK SPAM: A temporary list to stop repeat welcomes
+        # FIX FOR AFK SPAM: Track recently-cleared AFK users
         self.afk_cooldown = set()
+        self.afk_recently_cleared = set()
 
     async def setup_hook(self):
         await db.setup()
@@ -42,6 +43,7 @@ class OmniBot(commands.Bot):
             "social",
             "economy",    # RENAME Economy.py -> economy.py
             "moderation",
+            "automod",
             "utility", 
             "leaderboard",
             "profile",
@@ -76,7 +78,7 @@ async def on_ready():
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching,
-            name="over the server | /help"
+            name="premium mode | /help"
         )
     )
 
@@ -89,7 +91,7 @@ async def on_message(message: discord.Message):
 
     # 1. AFK CHECK (With Spam Protection)
     # Only check DB if user is NOT in our temporary cooldown list
-    if uid not in bot.afk_cooldown:
+    if uid not in bot.afk_cooldown and uid not in bot.afk_recently_cleared:
         try:
             afk_reason = await db.get_afk(uid)
             if afk_reason:
@@ -98,6 +100,7 @@ async def on_message(message: discord.Message):
                 
                 # Remove from DB
                 await db.remove_afk(uid)
+                bot.afk_recently_cleared.add(uid)
                 
                 # Send the message
                 embed = discord.Embed(
