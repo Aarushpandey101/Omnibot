@@ -135,6 +135,31 @@ async def get_inventory(uid: int):
         async with db.execute("SELECT item, quantity FROM inventory WHERE user_id=?", (uid,)) as cur:
             return await cur.fetchall()
 
+# --- GLOBAL LEADERBOARDS ---
+async def get_top_levels(limit: int = 10):
+    async with aiosqlite.connect(DB_FILE) as db:
+        async with db.execute(
+            "SELECT user_id, level, xp FROM users ORDER BY level DESC, xp DESC LIMIT ?",
+            (limit,)
+        ) as cur:
+            return await cur.fetchall()
+
+async def get_top_money(limit: int = 10):
+    async with aiosqlite.connect(DB_FILE) as db:
+        async with db.execute(
+            "SELECT user_id, wallet + bank AS total FROM users ORDER BY total DESC LIMIT ?",
+            (limit,)
+        ) as cur:
+            return await cur.fetchall()
+
+async def get_top_inventory(limit: int = 10):
+    async with aiosqlite.connect(DB_FILE) as db:
+        async with db.execute(
+            "SELECT user_id, SUM(quantity) AS total FROM inventory GROUP BY user_id ORDER BY total DESC LIMIT ?",
+            (limit,)
+        ) as cur:
+            return await cur.fetchall()
+
 # --- WARNS ---
 async def add_warn(uid: int):
     await ensure_user(uid)
