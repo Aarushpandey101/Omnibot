@@ -10,9 +10,14 @@ from personality import line
 # ---------- HELPERS ---------- #
 
 def progress_bar(current: int, total: int, size: int = 12):
+    total = max(total, 1)
     filled = int(size * current / total)
     empty = size - filled
     return "▰" * filled + "▱" * empty
+
+
+def format_number(value: int) -> str:
+    return f"{value:,}"
 
 
 async def get_badges(uid: int):
@@ -66,25 +71,50 @@ class Profile(commands.Cog):
         next_lvl_xp = lvl * 100
         bar = progress_bar(xp, next_lvl_xp)
 
-        inv_display = ", ".join(f"{i}×{q}" for i, q in inventory[:5])
+        inv_display = "\n".join(f"• **{i}** ×{q}" for i, q in inventory[:5])
         if not inv_display:
-            inv_display = "Empty"
+            inv_display = "No items yet."
+
+        total_money = wallet + bank
 
         embed = discord.Embed(
-            title=f"👤 {member.name}'s Profile",
+            title="🌟 Omni Profile",
             description=line(
-                f"**Level:** {lvl}\n"
-                f"`{bar}` {xp}/{next_lvl_xp} XP\n\n"
-                f"💵 **Wallet:** {wallet}\n"
-                f"🏦 **Bank:** {bank}\n\n"
-                f"🎒 **Inventory:** {inv_display}\n\n"
-                f"🏅 **Badges:** {', '.join(badges) if badges else 'None'}"
+                f"**Status:** {member.mention}\n"
+                f"**Total Worth:** {format_number(total_money)} coins"
             ),
-            color=0x5865F2
+            color=0x4C5FD7
         )
 
+        embed.set_author(name=f"{member.display_name}'s Card", icon_url=member.display_avatar.url)
+        embed.add_field(
+            name="📈 Progress",
+            value=(
+                f"**Level {lvl}**\n"
+                f"`{bar}` **{format_number(xp)}**/**{format_number(next_lvl_xp)} XP**"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="💳 Economy",
+            value=(
+                f"**Wallet:** {format_number(wallet)}\n"
+                f"**Bank:** {format_number(bank)}"
+            ),
+            inline=True
+        )
+        embed.add_field(
+            name="🎒 Inventory",
+            value=inv_display,
+            inline=True
+        )
+        embed.add_field(
+            name="🏅 Badges",
+            value=", ".join(badges) if badges else "None yet.",
+            inline=False
+        )
         embed.set_thumbnail(url=member.display_avatar.url)
-        embed.set_footer(text="OmniBot • Profile System")
+        embed.set_footer(text="OmniBot • Premium Profile Suite")
 
         await interaction.response.send_message(embed=embed)
 
