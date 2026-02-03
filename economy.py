@@ -109,14 +109,14 @@ class Economy(commands.Cog):
     async def daily(self, interaction: discord.Interaction):
         await ensure_user(interaction.user.id)
         cd = await get_cooldown(interaction.user.id, "daily")
-        if cd and cd > 0:
-            remaining = int(cd)
+        if cd and cd > datetime.utcnow().timestamp():
+            remaining = int(cd - datetime.utcnow().timestamp())
             await interaction.response.send_message(
                 f"⏱️ Daily cooldown: {remaining//3600}h {(remaining%3600)//60}m", ephemeral=True)
             return
         reward = random.randint(400, 700)
         await add_wallet(interaction.user.id, reward)
-        await set_cooldown(interaction.user.id, "daily", int(timedelta(hours=24).total_seconds()))
+        await set_cooldown(interaction.user.id, "daily", (datetime.utcnow() + timedelta(hours=24)).timestamp())
         await self.send_embed(
             interaction,
             "🌞 Daily Reward",
@@ -129,8 +129,8 @@ class Economy(commands.Cog):
     async def work(self, interaction: discord.Interaction):
         await ensure_user(interaction.user.id)
         cd = await get_cooldown(interaction.user.id, "work")
-        if cd and cd > 0:
-            remaining = int(cd)
+        if cd and cd > datetime.utcnow().timestamp():
+            remaining = int(cd - datetime.utcnow().timestamp())
             await interaction.response.send_message(
                 f"⏱️ Work cooldown: {remaining//60}m {remaining%60}s", ephemeral=True
             )
@@ -139,7 +139,7 @@ class Economy(commands.Cog):
         reward = random.randint(min_pay, max_pay)
         await add_wallet(interaction.user.id, reward)
         await add_xp(interaction.user.id, 10, 25)
-        await set_cooldown(interaction.user.id, "work", int(timedelta(minutes=20).total_seconds()))
+        await set_cooldown(interaction.user.id, "work", (datetime.utcnow() + timedelta(minutes=20)).timestamp())
         await self.send_embed(
             interaction,
             "💼 Shift Complete",
@@ -152,15 +152,15 @@ class Economy(commands.Cog):
     async def beg(self, interaction: discord.Interaction):
         await ensure_user(interaction.user.id)
         cd = await get_cooldown(interaction.user.id, "beg")
-        if cd and cd > 0:
-            remaining = int(cd)
+        if cd and cd > datetime.utcnow().timestamp():
+            remaining = int(cd - datetime.utcnow().timestamp())
             await interaction.response.send_message(
                 f"⏱️ Beg cooldown: {remaining//60}m {remaining%60}s", ephemeral=True
             )
             return
         reward = random.randint(*BEG_REWARDS)
         await add_wallet(interaction.user.id, reward)
-        await set_cooldown(interaction.user.id, "beg", int(timedelta(minutes=5).total_seconds()))
+        await set_cooldown(interaction.user.id, "beg", (datetime.utcnow() + timedelta(minutes=5)).timestamp())
         await self.send_embed(
             interaction,
             "🪙 Pocket Change",
@@ -173,8 +173,8 @@ class Economy(commands.Cog):
     async def crime(self, interaction: discord.Interaction):
         await ensure_user(interaction.user.id)
         cd = await get_cooldown(interaction.user.id, "crime")
-        if cd and cd > 0:
-            remaining = int(cd)
+        if cd and cd > datetime.utcnow().timestamp():
+            remaining = int(cd - datetime.utcnow().timestamp())
             await interaction.response.send_message(
                 f"⏱️ Crime cooldown: {remaining//60}m {remaining%60}s", ephemeral=True
             )
