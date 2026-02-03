@@ -30,8 +30,9 @@ class OmniBot(commands.Bot):
             help_command=None
         )
         
-        # FIX FOR AFK SPAM: A temporary list to stop repeat welcomes
+        # FIX FOR AFK SPAM: Track recently-cleared AFK users
         self.afk_cooldown = set()
+        self.afk_recently_cleared = set()
 
     async def setup_hook(self):
         await db.setup()
@@ -77,7 +78,7 @@ async def on_ready():
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching,
-            name="over the server | /help"
+            name="premium mode | /help"
         )
     )
 
@@ -90,7 +91,7 @@ async def on_message(message: discord.Message):
 
     # 1. AFK CHECK (With Spam Protection)
     # Only check DB if user is NOT in our temporary cooldown list
-    if uid not in bot.afk_cooldown:
+    if uid not in bot.afk_cooldown and uid not in bot.afk_recently_cleared:
         try:
             afk_reason = await db.get_afk(uid)
             if afk_reason:
@@ -99,6 +100,7 @@ async def on_message(message: discord.Message):
                 
                 # Remove from DB
                 await db.remove_afk(uid)
+                bot.afk_recently_cleared.add(uid)
                 
                 # Send the message
                 embed = discord.Embed(
@@ -106,10 +108,17 @@ async def on_message(message: discord.Message):
                     color=0x2b2d31 # Dark professional color
                 )
                 await message.channel.send(embed=embed, delete_after=8)
-                
+
                 # Remove from cooldown after a few seconds to clear memory
                 await asyncio.sleep(5)
                 bot.afk_cooldown.discard(uid)
+
+                # Allow AFK clearing again after a short grace period
+                async def clear_recently_cleared(user_id: int):
+                    await asyncio.sleep(60)
+                    bot.afk_recently_cleared.discard(user_id)
+
+                asyncio.create_task(clear_recently_cleared(uid))
         except Exception:
             pass
 
