@@ -190,7 +190,7 @@ class Economy(commands.Cog):
             await add_wallet(interaction.user.id, -fine)
             message = f"You got caught and lost **{format_number(fine)}** coins."
             color = 0xE74C3C
-        await set_cooldown(interaction.user.id, "crime", (datetime.utcnow() + timedelta(minutes=30)).timestamp())
+        await set_cooldown(interaction.user.id, "crime", int(timedelta(minutes=30).total_seconds()))
         await self.send_embed(interaction, "🚨 Crime Run", message, color=color)
 
     # --- Shop Commands ---
