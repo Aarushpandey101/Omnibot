@@ -64,17 +64,6 @@ def format_number(value: int) -> str:
     return f"{value:,}"
 
 
-async def resolve_user(bot: commands.Bot, user_id: int) -> str:
-    user = bot.get_user(user_id)
-    if user:
-        return user.display_name
-    try:
-        user = await bot.fetch_user(user_id)
-        return user.display_name
-    except discord.NotFound:
-        return f"User {user_id}"
-
-
 def build_embed(title, rows, page):
     start = page * PAGE_SIZE
     end = start + PAGE_SIZE
@@ -86,16 +75,14 @@ def build_embed(title, rows, page):
         prefix = MEDALS.get(i, f"`{i}`")
         if len(row) == 3:
             member, lvl, xp = row
-            name = member.display_name if hasattr(member, "display_name") else str(member)
             desc += (
-                f"{prefix} **{name}**\n"
+                f"{prefix} **{member.display_name}**\n"
                 f"↳ **Lv {lvl}** • **{format_number(xp)} XP**\n"
             )
         else:
             member, value = row
-            name = member.display_name if hasattr(member, "display_name") else str(member)
             desc += (
-                f"{prefix} **{name}**\n"
+                f"{prefix} **{member.display_name}**\n"
                 f"↳ **{format_number(value)}**\n"
             )
 

@@ -154,7 +154,6 @@ class HelpEmbeds:
             title="📊 Stats & Utility",
             description=(
                 "`/profile` `/leaderboard`\n"
-                "`/globalleaderboard`\n"
                 "`/ping` `/uptime` `/stats`\n"
                 "`/invite` `/about`\n"
                 "`/serverinfo` `/userinfo` `/avatar`"
@@ -213,6 +212,122 @@ class Utility(commands.Cog):
         embed.add_field(name="Latency", value=f"`{round(self.bot.latency*1000)}ms`", inline=True)
         embed.add_field(name="Library", value=f"`discord.py`", inline=True)
         
+        await interaction.response.send_message(embed=embed)
+
+    # SERVER INFO
+    @app_commands.command(name="serverinfo", description="View server details")
+    async def serverinfo(self, interaction: discord.Interaction):
+        guild = interaction.guild
+        if not guild:
+            await interaction.response.send_message("❌ Server info is only available in guilds.", ephemeral=True)
+            return
+
+        embed = discord.Embed(
+            title="🏰 Server Overview",
+            description=line(f"**{guild.name}**"),
+            color=0x4C5FD7
+        )
+        embed.add_field(name="Owner", value=f"{guild.owner} ({guild.owner_id})", inline=False)
+        embed.add_field(name="Members", value=f"`{guild.member_count}`", inline=True)
+        embed.add_field(name="Roles", value=f"`{len(guild.roles)}`", inline=True)
+        embed.add_field(name="Channels", value=f"`{len(guild.channels)}`", inline=True)
+        embed.add_field(name="Created", value=guild.created_at.strftime("%Y-%m-%d"), inline=True)
+        if guild.icon:
+            embed.set_thumbnail(url=guild.icon.url)
+        embed.set_footer(text=f"{BOT_NAME} • Server Intelligence")
+        await interaction.response.send_message(embed=embed)
+
+    # USER INFO
+    @app_commands.command(name="userinfo", description="View user details")
+    async def userinfo(self, interaction: discord.Interaction, member: discord.Member | None = None):
+        member = member or interaction.user
+        roles = [role.mention for role in member.roles if role.name != "@everyone"]
+        roles_display = ", ".join(roles[:8]) if roles else "No roles"
+        if len(roles) > 8:
+            roles_display += f" (+{len(roles) - 8} more)"
+
+        embed = discord.Embed(
+            title="👤 User Profile",
+            description=line(f"{member.mention}"),
+            color=0x9B59B6
+        )
+        embed.add_field(name="Username", value=f"{member} ({member.id})", inline=False)
+        embed.add_field(name="Joined", value=member.joined_at.strftime("%Y-%m-%d"), inline=True)
+        embed.add_field(name="Created", value=member.created_at.strftime("%Y-%m-%d"), inline=True)
+        embed.add_field(name="Roles", value=roles_display, inline=False)
+        embed.set_thumbnail(url=member.display_avatar.url)
+        embed.set_footer(text=f"{BOT_NAME} • User Intelligence")
+        await interaction.response.send_message(embed=embed)
+
+    # AVATAR
+    @app_commands.command(name="avatar", description="Show a user's avatar")
+    async def avatar(self, interaction: discord.Interaction, member: discord.Member | None = None):
+        member = member or interaction.user
+        embed = discord.Embed(
+            title="🖼️ Avatar",
+            description=line(f"{member.mention}"),
+            color=0x4C5FD7
+        )
+        embed.set_image(url=member.display_avatar.url)
+        embed.set_footer(text=f"{BOT_NAME} • Avatar Vault")
+        await interaction.response.send_message(embed=embed)
+
+    # SERVER INFO
+    @app_commands.command(name="serverinfo", description="View server details")
+    async def serverinfo(self, interaction: discord.Interaction):
+        guild = interaction.guild
+        if not guild:
+            await interaction.response.send_message("❌ Server info is only available in guilds.", ephemeral=True)
+            return
+
+        embed = discord.Embed(
+            title="🏰 Server Overview",
+            description=line(f"**{guild.name}**"),
+            color=0x4C5FD7
+        )
+        embed.add_field(name="Owner", value=f"{guild.owner} ({guild.owner_id})", inline=False)
+        embed.add_field(name="Members", value=f"`{guild.member_count}`", inline=True)
+        embed.add_field(name="Roles", value=f"`{len(guild.roles)}`", inline=True)
+        embed.add_field(name="Channels", value=f"`{len(guild.channels)}`", inline=True)
+        embed.add_field(name="Created", value=guild.created_at.strftime("%Y-%m-%d"), inline=True)
+        if guild.icon:
+            embed.set_thumbnail(url=guild.icon.url)
+        embed.set_footer(text=f"{BOT_NAME} • Server Intelligence")
+        await interaction.response.send_message(embed=embed)
+
+    # USER INFO
+    @app_commands.command(name="userinfo", description="View user details")
+    async def userinfo(self, interaction: discord.Interaction, member: discord.Member | None = None):
+        member = member or interaction.user
+        roles = [role.mention for role in member.roles if role.name != "@everyone"]
+        roles_display = ", ".join(roles[:8]) if roles else "No roles"
+        if len(roles) > 8:
+            roles_display += f" (+{len(roles) - 8} more)"
+
+        embed = discord.Embed(
+            title="👤 User Profile",
+            description=line(f"{member.mention}"),
+            color=0x9B59B6
+        )
+        embed.add_field(name="Username", value=f"{member} ({member.id})", inline=False)
+        embed.add_field(name="Joined", value=member.joined_at.strftime("%Y-%m-%d"), inline=True)
+        embed.add_field(name="Created", value=member.created_at.strftime("%Y-%m-%d"), inline=True)
+        embed.add_field(name="Roles", value=roles_display, inline=False)
+        embed.set_thumbnail(url=member.display_avatar.url)
+        embed.set_footer(text=f"{BOT_NAME} • User Intelligence")
+        await interaction.response.send_message(embed=embed)
+
+    # AVATAR
+    @app_commands.command(name="avatar", description="Show a user's avatar")
+    async def avatar(self, interaction: discord.Interaction, member: discord.Member | None = None):
+        member = member or interaction.user
+        embed = discord.Embed(
+            title="🖼️ Avatar",
+            description=line(f"{member.mention}"),
+            color=0x4C5FD7
+        )
+        embed.set_image(url=member.display_avatar.url)
+        embed.set_footer(text=f"{BOT_NAME} • Avatar Vault")
         await interaction.response.send_message(embed=embed)
 
     # SERVER INFO
