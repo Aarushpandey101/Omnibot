@@ -98,6 +98,7 @@ class HelpEmbeds:
             title="💰 Economy Commands",
             description=(
                 "`/balance` `/daily` `/work`\n"
+                "`/beg` `/crime` `/deposit` `/withdraw`\n"
                 "`/shop` `/buy` `/sell`\n"
                 "`/slots` `/dice` `/coinflip`"
             ),
