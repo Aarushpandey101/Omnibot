@@ -115,14 +115,23 @@ class Fun(commands.Cog):
 
     # ---------- HELPERS ---------- #
 
-    async def send_embed(self, interaction, title, description, gif_key=None, color=PREMIUM_BLUE):
+    async def send_embed(self, interaction, title, description, gif_key=None, color=PREMIUM_BLUE, ping=None):
         embed = discord.Embed(title=title, description=line(description), color=color)
         if gif_key:
             gif = await get_gif(gif_key)
             if gif:
                 embed.set_image(url=gif)
         embed.set_footer(text="OmniBot • Premium Fun Suite")
-        await interaction.response.send_message(embed=embed)
+        send_kwargs = {"embed": embed}
+        if ping:
+            send_kwargs["content"] = ping.mention
+            send_kwargs["allowed_mentions"] = discord.AllowedMentions(
+                users=True,
+                roles=False,
+                everyone=False,
+                replied_user=False,
+            )
+        await interaction.response.send_message(**send_kwargs)
 
     async def reward_user(self, uid: int):
         reward = random.randint(*CURRENCY_REWARD)
@@ -158,14 +167,14 @@ class Fun(commands.Cog):
     @app_commands.command(name="truth")
     async def truth(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "truth"): return
-        await self.send_embed(interaction, "🧠 Truth", draw_from_pool("truth", TRUTH_POOL))
+        await self.send_embed(interaction, "🧠 Truth", draw_from_pool("truth", TRUTH_POOL), gif_key="anime thinking")
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 
     @app_commands.command(name="dare")
     async def dare(self, interaction: discord.Interaction):
         if await self.check_cd(interaction, "dare"): return
-        await self.send_embed(interaction, "🔥 Dare", draw_from_pool("dare", DARE_POOL))
+        await self.send_embed(interaction, "🔥 Dare", draw_from_pool("dare", DARE_POOL), gif_key="anime challenge")
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 
@@ -202,7 +211,12 @@ class Fun(commands.Cog):
         if await self.check_cd(interaction, "randomfun", 10): return
         choice = random.choice([("truth", TRUTH_POOL), ("dare", DARE_POOL), ("fact", FACT_POOL)])
         text = draw_from_pool(choice[0], choice[1])
-        await self.send_embed(interaction, "🎲 Random Fun", text)
+        gif_map = {
+            "truth": "anime thinking",
+            "dare": "anime challenge",
+            "fact": "anime wow",
+        }
+        await self.send_embed(interaction, "🎲 Random Fun", text, gif_key=gif_map[choice[0]])
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 
@@ -210,7 +224,7 @@ class Fun(commands.Cog):
     async def roast(self, interaction: discord.Interaction, member: discord.Member):
         if await self.check_cd(interaction, "roast"): return
         roast = draw_from_pool("roast", ROAST_POOL)
-        await self.send_embed(interaction, "🔥 Roast", f"{member.mention}, {roast}")
+        await self.send_embed(interaction, "🔥 Roast", f"{member.mention}, {roast}", ping=member)
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 
@@ -219,7 +233,7 @@ class Fun(commands.Cog):
         if await self.check_cd(interaction, "compliment"): return
         target = member or interaction.user
         text = draw_from_pool("compliment", COMPLIMENT_POOL)
-        await self.send_embed(interaction, "✨ Compliment", f"{target.mention}, {text}")
+        await self.send_embed(interaction, "✨ Compliment", f"{target.mention}, {text}", gif_key="anime sparkles", ping=target)
         reward = await self.reward_user(interaction.user.id)
         await self.send_reward_notice(interaction, reward)
 

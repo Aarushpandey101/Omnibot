@@ -1,7 +1,7 @@
 import aiosqlite
 import random
 import datetime
-from config import DB_FILE
+from config import DB_FILE, DEFAULT_PREFIX
 
 # --- SETUP TABLES ---
 async def setup():
@@ -49,12 +49,90 @@ async def setup():
             action TEXT,
             timestamp INTEGER
         );
+
+        CREATE TABLE IF NOT EXISTS guild_settings (
+            guild_id INTEGER PRIMARY KEY,
+            prefix TEXT DEFAULT '!'
+        );
+
+        CREATE TABLE IF NOT EXISTS quotes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            guild_id INTEGER,
+            author_id INTEGER,
+            author_name TEXT,
+            text TEXT,
+            timestamp INTEGER
+        );
         """)
         try:
             await db.execute("ALTER TABLE users ADD COLUMN is_afk INTEGER DEFAULT 0")
         except aiosqlite.OperationalError:
             pass
         await db.commit()
+
+# --- GUILD SETTINGS ---
+async def ensure_guild(guild_id: int):
+    async with aiosqlite.connect(DB_FILE) as db:
+        await db.execute(
+            "INSERT OR IGNORE INTO guild_settings(guild_id, prefix) VALUES(?, ?)",
+            (guild_id, DEFAULT_PREFIX),
+        )
+        await db.commit()
+
+async def get_guild_prefix(guild_id: int):
+    await ensure_guild(guild_id)
+    async with aiosqlite.connect(DB_FILE) as db:
+        async with db.execute("SELECT prefix FROM guild_settings WHERE guild_id=?", (guild_id,)) as cur:
+            row = await cur.fetchone()
+            return row[0] if row and row[0] else DEFAULT_PREFIX
+
+async def set_guild_prefix(guild_id: int, prefix: str):
+    await ensure_guild(guild_id)
+    async with aiosqlite.connect(DB_FILE) as db:
+        await db.execute(
+            "INSERT INTO guild_settings(guild_id, prefix) VALUES(?, ?) "
+            "ON CONFLICT(guild_id) DO UPDATE SET prefix=excluded.prefix",
+            (guild_id, prefix),
+        )
+        await db.commit()
+
+async def reset_guild_prefix(guild_id: int):
+    await set_guild_prefix(guild_id, DEFAULT_PREFIX)
+
+# --- REPUTATION ---
+async def add_reputation(uid: int, amount: int = 1):
+    await ensure_user(uid)
+    async with aiosqlite.connect(DB_FILE) as db:
+        await db.execute("UPDATE users SET reputation = reputation + ? WHERE user_id=?", (amount, uid))
+        await db.commit()
+
+async def get_reputation(uid: int):
+    await ensure_user(uid)
+    async with aiosqlite.connect(DB_FILE) as db:
+        async with db.execute("SELECT reputation FROM users WHERE user_id=?", (uid,)) as cur:
+            row = await cur.fetchone()
+            return row[0] if row else 0
+
+# --- QUOTES ---
+async def add_quote(guild_id: int | None, author_id: int, author_name: str, text: str):
+    async with aiosqlite.connect(DB_FILE) as db:
+        await db.execute(
+            "INSERT INTO quotes(guild_id, author_id, author_name, text, timestamp) VALUES(?,?,?,?,?)",
+            (guild_id, author_id, author_name, text, int(datetime.datetime.utcnow().timestamp())),
+        )
+        await db.commit()
+
+async def get_random_quote(guild_id: int | None = None):
+    async with aiosqlite.connect(DB_FILE) as db:
+        if guild_id is None:
+            query = "SELECT author_name, text, author_id FROM quotes ORDER BY RANDOM() LIMIT 1"
+            params = ()
+        else:
+            query = "SELECT author_name, text, author_id FROM quotes WHERE guild_id=? ORDER BY RANDOM() LIMIT 1"
+            params = (guild_id,)
+        async with db.execute(query, params) as cur:
+            row = await cur.fetchone()
+            return row
 
 # --- USER HELPERS ---
 async def ensure_user(uid: int):

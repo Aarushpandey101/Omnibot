@@ -8,13 +8,20 @@ import asyncio
 import keep_alive
 
 import database as db
-from config import BOT_NAME, VERSION
+from config import BOT_NAME, VERSION, DEFAULT_PREFIX
 
 START_TIME = datetime.datetime.utcnow()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 if not TOKEN:
     raise RuntimeError("DISCORD_TOKEN is missing!")
+
+
+async def get_prefix(bot: commands.Bot, message: discord.Message):
+    prefix = DEFAULT_PREFIX
+    if message.guild:
+        prefix = await db.get_guild_prefix(message.guild.id)
+    return commands.when_mentioned_or(prefix)(bot, message)
 
 # ---------------- BOT CLASS ---------------- #
 
@@ -25,7 +32,7 @@ class OmniBot(commands.Bot):
         intents.members = True
 
         super().__init__(
-            command_prefix="!",
+            command_prefix=get_prefix,
             intents=intents,
             help_command=None
         )
@@ -41,6 +48,8 @@ class OmniBot(commands.Bot):
         cogs = [
             "fun",
             "social",
+            "community",
+            "nsfw",
             "economy",    # RENAME Economy.py -> economy.py
             "moderation",
             "automod",

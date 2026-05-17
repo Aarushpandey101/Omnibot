@@ -11,6 +11,7 @@ TENOR_API_KEY = os.getenv("TENOR_API_KEY")
 BOT_NAME = os.getenv("BOT_NAME", "OmniBot")
 VERSION = os.getenv("BOT_VERSION", "GOD-TITAN v4.0")
 CREATOR = os.getenv("BOT_CREATOR", "Aarushpandey11")
+DEFAULT_PREFIX = os.getenv("BOT_PREFIX", "!")
 
 DB_FILE = "omnibot.db"
 
